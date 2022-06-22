@@ -1,0 +1,143 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+import needed package
+```{r}
+library(tidyverse)
+```
+
+1(a)
+
+To get a brief view of the whole dataset.
+
+From the output below, we have 2 colomns and 9 rows here. First column is the treatment type: control group with no treatment, low_dose and high_dose treatment; second colomn is a messy collection for bone_density from three treatment, each treatment has 3 rows for its own data.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/isoflavones.txt"
+kudzu <- read_table(my_url)
+kudzu
+```
+
+1(b)
+
+Here, I plan to use pivot_longer to put all the density value into one column, so that we are able to make a graph with the data in the column. But the problem is pivot_longer needs only one number in one position, that is, we can only have at most one value in a particular place denoted as (row #, column #).
+
+Observing the data file, there is a common point that all the values are separated by a blank space: " ", if we want to separate all the values to make consecutive columns for them, we can skip first row so that we can have 7 columns(first column for treatment type, and 6 columns for density value).
+
+In this way, all the names and value will be useful variables for making graphs, so none of them can be used as column names, so I put "col_names = F".
+
+'''
+web page:
+https://astrostatistics.psu.edu/su07/R/html/utils/html/read.table.html
+skip	integer: the number of lines of the data file to skip before beginning to read data.
+
+web page:
+https://astrostatistics.psu.edu/su07/R/html/utils/html/read.table.html
+col.names	a vector of optional names for the variables. The default is to use "V" followed by the column number.
+'''
+
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/isoflavones.txt"
+kudzu <- read_table(my_url, skip = 1, col_names = F)
+kudzu
+```
+
+
+Then we are able to use pivot_longer to make separated data into one column.
+
+and I still want to change the name for first column into "treatment", just like it originally as.
+
+'''
+web:
+https://stackoverflow.com/questions/6081439/changing-column-names-of-a-data-frame
+'''
+
+```{r}
+kudzu %>% pivot_longer(X2:X7, names_to="col", values_to="bone_mineral_density", values_drop_na = T) -> kudzu1
+names(kudzu1)[1]<-paste("treatment")
+kudzu1
+```
+
+
+This data looks much more tidier, except for the first column: for some rows the treatment chr are empty because from original data, some rows are consecutive together for the same treatment type. So I want to use "fill" function to fill the empty names for treatment.
+
+'''
+web:
+https://www.rdocumentation.org/packages/tidyr/versions/0.8.3/topics/fill
+
+Fills missing values in selected columns using the previous entry. This is useful in the common output format where values are not repeated, they're recorded each time they change.
+
+Details
+Missing values are replaced in atomic vectors; NULLs are replaced in list.
+'''
+
+Here we find that we meets another problem, "fill" needs to take in NULL type to automatically fill the missing values, so we want to make the empty values in column 1 into NULL first. I use "na_if" here.
+
+'''
+web:
+https://statisticsglobe.com/r-na_if-function-dplyr-package
+'''
+
+```{r}
+na_if(kudzu1, "") -> kudzu2
+kudzu2
+```
+
+Now all the empty value in column 1 is NA, so we are able to use "fill" to fill the NA columns as I mentioned and cited before.
+
+```{r}
+fill(kudzu2, treatment) -> kudzu3
+kudzu3
+```
+
+The above one is the tidy version we want: one column for treatment type, one column for bone_mineral_density for particular treatment type. the other col was used for pivot_longer, it is useless now.
+
+
+1(c)
+We want to see the variance for density for each treatment type, a good way to compare variance is side-by-side boxplots, which needs 1 categorical variable (treatment type) and 1 quantitative variable (bone_mineral_density), which is suitble here.
+```{r}
+ggplot(kudzu3, aes(x = treatment, y = bone_mineral_density)) + geom_boxplot()
+
+```
+
+From the plot above, we can see high_dose has highest density, followed by control, low_dose density is a little bit below control.
+
+We can compare the variance by observing the height of each boxplot. control has smallest variance, low_dose has larger variance than control, high_dose has the largest variance.
+
+So our High_dose treatment improves bone density in general, but the treatment is not very stable because individuals varies a lot in density after treatment. Low_dose treatment has negative impact on bone density, and density for individuals spreads more, compared with control group.
+
+1(d)
+To decide on analysis we need to use, we still need to see if the sample is normal enough. To determine normality, we can use normal quantile plot.
+
+we want to see the normality for bone_mineral_density value: "aes(sample = bone_mineral_density)", and want them separated by three graphs for each treatment type: "facet_wrap(~treatment)".
+
+```{r}
+ggplot(kudzu3, aes(sample = bone_mineral_density)) + stat_qq() + stat_qq_line() + facet_wrap(~treatment)
+
+```
+
+From the plots above, for the control group, we can see one or two outliers on the low and high points, and 2 outliers at the middle of the plot, the sample size is 15, which is too small to use central limit theorem, 5 outliers is quite big for this size of sample. On the general trend, we can see low points and high points are too high compared to the straight line, so I would say that the control group is right-skewed, normality is violated here.
+
+The other two plots seems good for normality assumption, except for 1 outlier at low and high points, almost all the points are gathered around the straight line.
+
+Since we doubt normality for control group, and we need all the group behave normal to induce anova or Tukey or Games-Howell, so here I suggest using pairwise median tests to analysis this dataset.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

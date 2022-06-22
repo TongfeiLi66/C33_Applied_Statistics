@@ -1,0 +1,108 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+```
+1(a)
+the data has three columns(person number, blood pressure before and after dentist) and 10 rows(number of person), which is consistent with data in source file.
+```{r}
+my_url = "http://ritsokiguess.site/STAC32/blood_pressure1.csv"
+bp <- read_csv(my_url)
+bp
+```
+
+1(b)
+From the data, we can observe that the data are two measurements for blood pressure before and after seeing dentist for each person: that is, each person has his blood pressure tested before and after he going for dentist, so I suggest this is a matched pairs design.
+
+
+1(c)
+we want to remove people-to-people differences and only focus on blood pressure data before and after seeing a dentist, so a matched pairs design is better to implement.
+H0: before = after, Ha: before > after.
+we use an alternative of greater because we want to know if people have higher blood pressure on average before their dentist’s appointment than after the appointment.
+```{r}
+with(bp, t.test(before, after, paired = T, alternative = "greater"))
+
+```
+since p-value = 0.0075 < 0.05, so we reject null hypothesis. And conclude that at level of significance of 0.05, people have higher blood pressure on average before dentist appointment than an hour after appointment.
+
+1(d)
+H0: before = after, Ha: before > after. Since we want to test before > after, which is diff = before - after > 0, so we should look at the upper side of alternative.
+p-value is 0.055 slightly bigger than 0.05, so we fail to reject null hypothesis. There is no evidence of difference in means; there's no significant difference in mean blood pressure for people before and after dentist appointment.
+```{r}
+bp %>% mutate(diff = before - after) -> 
+  bp2
+library(smmr)
+sign_test(bp2,diff)
+```
+
+1(e)
+if we want to determine if we need to use sign test or paired t test, we should test normality of the "diff" in the data we are testing.
+```{r}
+bp2 %>% ggplot(aes(sample = diff)) + stat_qq() + stat_qq_line()
+```
+
+1(f)
+Sign test is more appropriate to run.
+From the normal qq plot, we can observe that there is evidence of long tails in the "diff" data, which means that we have outliers at both ends, because two low values are too low and two high values are too high. Since the sample size is 10, which is too small to use central limit therom to assess normality. So I suggest here that the normality assumption is violated, thus we cannot use paired t test which needs normal distributed data, so I think sign test here is better.
+
+
+
+
+
+2(a)
+from the data, we get 2 columns and 190 rows. 2 sets of people(male or female) are doing same measurement of handspan
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/handspan.txt"
+hand <- read_delim(my_url," ")
+hand
+```
+
+
+2(b)
+Here we want to see normal distribution from data of handspan of male and female, so we need to draw qq plot for male and female seperatly.
+```{r}
+ggplot(hand, aes(sample = handspan)) + 
+  stat_qq() + stat_qq_line() + facet_wrap(~sex)
+```
+
+
+
+2(c)
+From the qq plot of female and male, we can observe that some low points are too low, so there is some outliers at the low end, but most of the points are gathered very closly beside the line, so generally, we can conclude normality for the data. Secondly, t test usually uses the data more efficiently, so I would prefer using two-sample t test here.
+
+
+2(d)
+H0: male = female, Ha: male > female
+From the output, we get two-sided p-value of 2.664e-19, here we want to test if male students have a larger mean handspan than female students, and we can see that most of males are above median(65 out of 76), so we can get 1 sided test by halving p value: 1.332e-19. 
+Since p value is much smaller than 0.05, so we reject null hypothesis, and for strong evidence, we can conclude that male students have a larger mean handspan than female students.
+```{r}
+median_test(hand, handspan, sex)
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

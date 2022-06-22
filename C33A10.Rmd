@@ -1,0 +1,182 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+1(a)
+
+The following data has 33 rows (33 observation of individuals height and foot length), and 2 columns (one column for height and one column for correspounding foot length of that person)
+
+```{r}
+library(tidyverse)
+my_url <- "http://ritsokiguess.site/STAC32/heightfoot.csv"
+foot <- read.csv(my_url)
+foot
+```
+
+1(b)
+
+Since 2 variables in this dataframe is height and foot length of an individual, both of these two variable are quantitative. And since we are estimating height from foot, so height is response variable (y), and foot is only predictor(x) for height. So I use scatter plot and regression method to look for relationship between height and foot length. 
+
+In the output, the blue line is mostly performing an upward trend, except for x between (27,28). So we can say that, generally, keeping others constant, height increases when foot length increases.
+
+```{r}
+ggplot(foot, aes(y = height, x = foot)) +
+  geom_point() + geom_smooth() 
+
+```
+
+1(c)
+
+On the graph in (b), the points are showing an upward trend -- when foot length increases, height increases. 
+
+But at x=27, there's an strange observation that is too much away from the line, the height is about 84. The point is unusual because it is even a lot higher than people with foot length above 30 (x>30). 
+
+This can cause errors in estimating the regression line. We can see the line is mostly performing an upward trend except for x between 27 and 28, the downward trend of the line could be caused by the outlier at (27,84). Because general/mean height of person with foot length at 27 could be higher than people with foot length at 28, because of this high outlier.
+
+
+
+1(d)
+
+From the scatter plot in (b), we can see the relationship between height and foot is linear. And we are estimating height from foot, so height is response variable (y), and foot is only predictor(x) for height.
+
+## Regression
+
+```{r}
+model1 <- lm(height ~ foot, data = foot)
+summary(model1)
+```
+
+## Plot of residuals against fitted values
+
+```{r}
+ggplot(model1, aes(y = .resid, x = .fitted)) + geom_point()
+```
+
+## Normal quantile plot of the residuals
+
+```{r}
+ggplot(model1, aes(sample=.resid)) + stat_qq() + stat_qq_line()
+```
+
+1(e)
+
+Earlier I identified an outlier at x=27, the response variable value is y=84, which is much more higher than the general level at x=27.
+
+In the Plot of residuals against fitted values, the point is the highest one at around fitted = 70, the value of residual is higher than 10. Since the outlier is at x=27, fitting in to the regression line, the fitted value is at 34.3363 + 1.3591*27 = 71.032, so fitted value is 71, residual is given by actual-expected = 84-71 = 13, which is consistent with what we observe in the graph.
+
+In the normal quantile plot of the residuals, the points are generally scattered around the straight line, except for a high point at the right end, given the strange observation we got is too high, this high outlier at the right end of normal quantile plot is the unusual observation.
+
+
+1(f)
+
+Since the unusual observation I want to exclude is at x=27,y=84, this is the only point with y >= 80, so I filter the original data with height < 80, to get the new data without this outlier.
+
+The new data frame without this observation is saved in foot2
+
+```{r}
+foot %>% filter(height<80) -> foot2
+foot2
+```
+
+1(g)
+
+We follow the same way to generate regression and plots for residual for foot2 as in 1(d): we are estimating height from foot, so height is response variable (y), and foot is only predictor(x) for height, and the relationship between them is linear, as we observed before.
+
+## Regression
+
+```{r}
+model2 <- lm(height ~ foot, data = foot2)
+summary(model2)
+```
+
+
+## Plot of residuals against fitted values
+
+```{r}
+ggplot(model2, aes(y = .resid, x = .fitted)) + geom_point()
+```
+
+
+## Normal quantile plot of the residuals
+
+```{r}
+ggplot(model2, aes(sample=.resid)) + stat_qq() + stat_qq_line()
+```
+
+1(h)
+
+the plots in (g) is much more better than previous plot. 
+
+In the Plot of residuals against fitted values, the points are scattered randomly around residual = 0, all over the fitted value from low to high, which is pretty good to me.
+
+In the normal quantile plot of the residuals, the points are almost gathered around the straight line, which means that this regression has normally distributed residuals, which is a good fit for the data.
+
+Looking at the summary of model1, model2, the multiple R square increase from 37.1 to 57.4, which is a great increase. This means that a lot more of the variability of model2, compared with model1, is explained by the regression line. So without the unusual observation, the model fits much better than the previous one.
+
+1(i)
+
+My idea is to merge foot and foot1 together to put both regression line on the same plot. And we still need a new categorical variable to identify data from foot and foot1
+
+
+First add new categorical variable to identify foot and foot2
+
+In the modified data, both foot and foot2 has a new column "err", it is categorical with "T" for foot, and "F" for foot2. The number of column is 33 and 32 as in the data before, as expected. 
+
+```{r}
+foot %>% mutate(err = "T") -> foot
+foot2 %>% mutate(err = "F") -> foot2
+foot
+foot2
+```
+
+
+Second, We can use rbind from the source to combine foot and foot2 together into a new data frame
+
+
+Source:
+"https://www.statmethods.net/management/merging.html"
+
+"Adding Rows
+
+To join two data frames (datasets) vertically, use the rbind function. The two data frames must have the same variables, but they do not have to be in the same order."
+
+```{r}
+new_foot <- rbind(foot, foot2)
+new_foot
+```
+
+With a categorical variable to identify data from two data set, we can draw the regression line with code: color=err.
+
+```{r}
+ggplot(new_foot, aes(y = height, x = foot,  color=err)) +
+  geom_point() + geom_smooth(method=lm) 
+```
+
+
+1(j)
+
+From the graph, we can see the highest point at x=27 is included in only foot (err=T), but not in foot2 (err=F).
+
+For the regression line, we can see the left end of regression line is higher for foot (err=T), and lower for foot2 (err=F), as we expected. This change is reasonable because data foot has an high outlier near the left end, to fit the model better, we ought to move the left end of regression line upper.
+
+Moving the left end of regression line higher, the high point provide less residual standard error, which is what we need to do to get the regression coefficient: to minimize residual error (SSE/MSE). As we expected, Decrease in MSE can be see in summary: decrease from 3.102 to 2.029.
+
+With a lower residual error (lower SSE), for a similar sample size (SST changed little), SSR should be larger, so value of R square should be higher, which shows that model2 without the outlier is much better than model1: more of the variability of the model is explained by the regression line. As we expected, from summary, multiple R square increase from 37.1 to 57.4.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

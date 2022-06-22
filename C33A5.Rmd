@@ -1,0 +1,178 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+```{r}
+library(tidyverse)
+library(smmr)
+```
+
+Introduction
+dandruff is a very common problem that can be seen on everyone of us, it is very common but usually worrisome. Some shampoo aims to reduce dandruff so that awkward situation can be less when we meet with others.
+
+In this report, a six weeks study of different people using four kind of shampoo is given, three of them are treatment shampoo and one of them is placebo(control), we are testing falking of these people and given the dataset.
+
+I want to compare among these shampoo and get a best one for recommendation for the people who is concerned about dandruff or considering a better treatment.
+
+#below is the data from shampoo study
+
+From the data, we can see there are 355 rows(355 different subjects) and 4 columns(observation number, treatment type groupnumber by treatment type, and flaking)
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/dandruff.txt"
+shampoo <- read_tsv(my_url)
+shampoo
+```
+
+I would say the GroupNum is redundant for this data set, because it is duplicated with Treatment, so I decided to drop it to make the data more tidy.
+
+```{r}
+shampoo %>%
+  select(-GroupNum) -> shampoo1
+shampoo1
+```
+
+#brief overview and assumption
+
+To have a brief view of the data, we first group the subjects by different treatment they took, and see the mean and median of their falking value.
+
+And I still drawing a histogram to get a more specific view.
+
+From the result, we can see no matter calculating mean or median, there's a big difference between placebo and other three shampoo, so we can make a bold guess that three treatments are all effective, and since keto has the smallest mean and median, we can make another assumption that keto is the most effective of these four shampoos.
+
+```{r}
+shampoo1 %>%
+  group_by(Treatment) %>%
+  summarize(n = n(), med = median(Flaking))
+shampoo1 %>%
+  group_by(Treatment) %>%
+  summarize(n = n(), mean = mean(Flaking))
+
+```
+```{r}
+ggplot(shampoo1, aes(x = Flaking)) + geom_histogram(bins = 15) +
+  facet_wrap(~Treatment)
+```
+
+To determine which method we should use for testing between these shampoo, we can test normality first.
+
+#determine normality
+
+```{r}
+ggplot(shampoo1, aes(sample = Flaking)) +
+  stat_qq() + stat_qq_line() +
+  facet_wrap(~Treatment)
+```
+
+A normal quantile plot is always useful for determining normality. 
+
+I did not use scales=free because I want to see the distribution of response variable(Flaking) on the same scale, so that I can determine normality more accurately. And I can probably see the sample variance ahead of time.
+
+For these four normal quantile plot, I would say the normality assumption is quite satisfied here. 
+
+Going through them: Keto has almost all of the points around the line, although some points do not stand exactly on the line, I would explain this by the precision of the data set. Since all the flaking number has to be integer, the points has to be arranged like some straight line instead of a smooth curve. 
+
+PyrI and PyrII both have their points gathered around the straight line, the normality assumption is satisfied too. 
+
+Placebo has less observations than the other three, the sample size is small so normality of the sample is much more important because we can not use Central Limit Theroem here, looking at the graph, the points are mostly gathered around the straight line, so normality is satisfied here.
+
+Brief view from above: Keto, PyrI and PyrII has large enough sample size to use Central Limit Theroem to assume normality, and they both have proper normal data. Placebo has its data distributed normally.
+
+#if they have same spread
+
+The next step we need is to test if the data has same spread
+
+we could use a box plot and compare the height of each box to see if they have same spread.
+
+we want 4 boxplot in the same scale so as to better compare their spread, so we want x axis to be different treatment group(categorical variable) and y axis be our quantitative variable Flaking we want to looking at for variance.
+
+```{r}
+ggplot(shampoo1, aes(x = Treatment, y = Flaking)) + geom_boxplot()
+
+```
+
+From the result, we can see that Placebo has the largest height of box and PyrI has the smallest, they difference a lot to me, the sample variance of Placebo is the largest and sample varianve of PyrI is samllest. So I would suggest that the sample do to have same spread, since we have 4 groups here, I suggest using Games-Howell to justify the effect of four shampoo.
+
+before going to Games-Howell test, I am interested in Welch ANOVA first.
+
+#Welch ANOVA
+
+We want to see if one or more Treatment is different from others(Alternative Hypothesis), H0: all treatments the same. The response variable we are comparing is Flaking value, and compare among Treatment group, as the code below.
+```{r}
+oneway.test(Flaking~Treatment,data=shampoo1)
+```
+
+GOOD!
+
+P-value< 2.2e-16 here is absolutely significant, we can reject H0, so it is evidently that among these four treatments, at least two of them are significantly different. So the value of P-value is as we expected.
+
+Then we can confidently go to the most important part with Games-Howell
+
+#Games-Howell
+
+new library needed
+```{r}
+library(PMCMRplus)
+```
+
+
+```{r games-howell, warning=F}
+gamesHowellTest(Flaking~factor(Treatment), data=shampoo1)
+```
+
+From the above 6 p-values, we can see there are 5 significant values: Placebo - Keto, Placebo - PyrI, Placebo - PyrII, Keto - PyrI, Keto - PyrII, so we reject null hypothesis for these 5 pairs, conclude that there is enough evidence to prove that these 5 pairs of treatment are different.
+
+There is only one value that is not significant: PyrI - PyrII, 0.67>0.05, so we fail to reject H0, and conclude that two treatments PyrI and PyrII have the same effect on handruff treatment.
+
+since the test is two sided, we cannot conclude with one is better for now.
+
+So I am doing a comparison to overall mean to determine which one is larger.
+
+#count observations above/below overall mean
+```{r}
+shampoo1 %>% summarize(mean=mean(Flaking)) %>% pull(mean) ->m
+tab=with(shampoo1, table(Treatment, Flaking>m))
+tab
+```
+
+
+1. Since Placebo has all its Flaking value above overall mean, Keto has 100 out of 106, PyrI has 62 out of 112, PyrII has 65 out of 109, and all of (Placebo - Keto, Placebo - PyrI, Placebo - PyrII) has their P-value significant in the last part, so we can reject H0, conclude that Keto, PyrI and PyrII can effectly reduce flaking after 6 weeks treatment, against control group which take Placebo, they are all considered to be effective treatment.
+
+We still need to consider among three treatments and get the best one.
+
+2. Since P value for PyrI and PyrII are not significant, we can suggest them as a whole for now. 
+And we want to compare Keto -- PyrI & PyrII, since Keto has 100 out of 106, PyrI has 62 out of 112 and PyrII has 65 out of 109 observation below overall mean, which means that Keto has almost every number below overall mean but PyrI and PyrII just like separated by half, so Keto generally has smaller Flaking values than PyrI and PyrII. Looking at last part, Keto - PyrI, Keto - PyrII has significant p-values so that we conclude these two sets as different. So here, we can furtherer conclude that Keto is a better treatment than PyrI and PyrII.
+
+3. Finally we get to PyrI and PyrII, since Games-Howell test provides large enough p value to say that these two treatments have the same effect. From the Instruction given, PyrII needs to shampoo two times at each wash, which could be tedious for hair wash, that is the reason that I conclude PyrI better than PyrII.
+
+4. We may still concern why Placebo-Keto has larger p-value than Placebo-PyrI and Placebo-PyrII. That might because Keto has smaller sample size than PyrI and PyrII, with smaller size, we have weaker power to get significant p-value, that could result in a larger p-value of Keto.
+
+#conclusion
+
+Conclusion: the above analysis can basically tells us the effectiveness of the three treatments(PyrI, PyrII and Keto), since Keto has smaller flaking value in overall mean test and significant p-value for comparison with other three treatments in Games-Howell test, we have enough evidence to prove that Keto is the best shampoo to reduce handuff effectively, than PyrI and PyrII.
+
+If we need to make a rank, that should be Keto > PyrI > PyrII > Placebo.
+
+Thank you all for the people that are interesting in my report and spend time reading it.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

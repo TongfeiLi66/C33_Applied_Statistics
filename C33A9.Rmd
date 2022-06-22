@@ -1,0 +1,170 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+Import needed library
+```{r}
+library(tidyverse)
+```
+
+
+
+1(a)
+
+The data contains 40 rows (40 observations of different individuals' pulse rate), and 3 columns (one is categorical variable to identify the sex of the individual, one is quantitative record of the person pulse rate before marching, one for after marching), which is consistent with the source file.
+
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/pulsemarch.csv"
+pulse <- read_csv(my_url)
+pulse
+```
+
+
+1(b)
+
+Since we want to use pulse rate before marching to predict pulse rate after marching, and see if there's difference between males and females. So in this data, quantitative variable after is our response variable, quantitative variable before and categorical variable sex are predictors.
+
+So we have after on y axis, before on x axis, then different color for sex to determine any differences between male and female. As shown below, we have 2 regression lines, one for female, one for male. I also add the line y=x on the graph, so we can see clearer of the size of After and Before.
+
+```{r}
+ggplot(pulse, aes(x=Before, y=After, color=Sex)) + geom_point() + geom_smooth(method=lm) -> p1
+p1 + geom_abline(intercept = 0, slope = 1)
+```
+
+
+1(c)
+
+From the graph above, we can see almost all the points, except for one green point for male, are above the black straight line, and one point for male, is on the black line. The black line is y=x, which means pulse rate after marching is equal to pulse rate before marching. Since most of the points are above black line, and, two regression lines are all above black line, so firstly, we can say that pulse rate after marching is higher than before marching.
+
+Secondly, we can observe a upward trend for both regression lines for female and for male, so we can say that, keep others same, pulse rate after marching increases when pulse rate before marching increases.
+
+Third, we can see, regression line of female is above line of male. So we can say that pulse rate of female on average is higher than male after marching. And look at the points corresponding place on x axis, we can see red points varies more on x axis than green points, but they seems to have similar mean. So we can also say that female and male has similar mean of pulse rate before marching, but pulse rate of female varies more.
+
+Last, we can see two regression lines for male and female are parallel, that is, these two lines have similar slope, so difference between pulse rate before and after marching for an individual are basically the same for males and females.
+
+
+
+1(d)
+
+Since we want to use pulse rate before marching to predict pulse rate after marching, and see if there's difference between males and females. So in this data, quantitative variable after is our response variable, quantitative variable before and categorical variable sex are predictor.
+
+Here the regression line is: After = 19.8003 + -4.8191 * Sex_Male + 0.9064 * Before
+
+(Indicator Sex_Male is 1 for male and 0 for female prediction.)
+
+```{r}
+model1 <- lm(After ~ Sex + Before, data=pulse)
+summary(model1)
+```
+
+
+1(e)
+
+The result from (d) is consistent with what I observe in (b) plot, the slope for male and female is 0.91 > 0, p_value is definitely significant, so there's positive relationship between pulse rate before and after marching, for all males and females, it is not surprising at all. 
+
+SexMale is -4.8, with p_value smaller than 0.05, so we reject that males and females have same mean pulse rate after marching. Keep all other constant, males have -4.8 lower pulse rate on average after marching compared with female, which is also consistent with what we observed from (b).
+
+To determine if male and female has same slope on regression line, I draw an anova table for Regression with interactive term sex*before, which denotes difference in slope between male and female.
+
+From the anova table below, we can see the p_value is 0.42, which is not significant at all, there's no significant improvement by adding the interaction, so we fail to reject that male and female has same slope, which means that male and female do have same slope on there regression line. This result is not surprising with what we observed from (b).
+
+```{r}
+model2 <- lm(After ~ Sex * Before, data=pulse)
+anova(model1, model2)
+
+```
+
+
+1(f)
+
+Since our regression line is: After = 19.8003 + (-4.8191) * Sex_Male + 0.9064 * Before
+
+(Indicator Sex_Male is 1 for male and 0 for female prediction.)
+
+So we are adding the numerical value (-4.8) for male prediction, which means that male has 4.8 lower pulse rate after marching on average, compared with female.
+
+
+
+
+2(a)
+
+The first line is function header, function name is cov, x is variable with values to calculate. Second and Third line calculate standard deviation and mean of x. Forth line return coefficient of variation.
+
+```{r}
+cov <- function(x) {
+  sd <- sd(x)
+  m <- mean(x)
+  sd/m
+}
+
+```
+
+
+2(b)
+
+From the result we find coefficient of variation of integers 1 to 5 is 0.5270463
+
+```{r}
+# define x as a list with set of integers 1 to 5
+x <- 1:5
+# calculate coefficient of variation of x through function defined in (a)
+cov(x)
+```
+
+
+2(c)
+
+From the result, we find the coefficient of variation of v is 6.248491e+16, which is too large and it doesn't make sense for this small list with all the numbers small.
+
+
+```{r}
+#define the vector as in the question
+v <- c(-2.8, -1.8, -0.8, 1.2, 4.2)
+# calculate coefficient of variation of x through function defined in (a)
+cov(v)
+```
+
+Do the calculation by ourselves, standard deviation is 2.8, which is not surprising. Mean of the values is 0 here, as an denominator, coefficient of variation does not exist in this situation. 
+
+We got a large number for coefficient of variation here because the mean we calculated is not 0, it's a very small number that might caused by computer rounding error.
+
+```{r}
+sd(v)
+mean(v)
+```
+
+
+2(d)
+
+I add a condition here to stop the program and report the error if any of the value in input x is negative.
+
+Test with vector v again. We get an error that x>=0 are not all TRUE, the program stopped, as we expected.
+
+```{r,error=TRUE}
+cov2 <- function(x) {
+  stopifnot(x>=0)
+  sd <- sd(x)
+  m <- mean(x)
+  sd/m
+}
+cov2(v)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

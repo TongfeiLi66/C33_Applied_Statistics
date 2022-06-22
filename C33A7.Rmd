@@ -1,0 +1,113 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+library(nycflights13)
+```
+
+1(a)
+First look at the dataframe airports, since we need to select airport codes EWR, JFK, LGA, so we need to determine which column airport codes belong to. 
+
+Looking through all the colomns, faa has exactly 3 characters, so my guess is that faa contains airport codes, so I filter "EWR" in faa, and successfully found it.
+
+So next we can filter all three airport codes in faa, and display faa with correspounding airports name,  by selecting "faa" and "name". Then we can see names of New York City’s three major airports in result.
+```{r}
+airports
+airports %>% filter(faa == "EWR")
+airports %>% filter(faa == "EWR" | faa == "JFK" | faa == "LGA") %>% select(faa,name)
+```
+
+1(b)
+displaying flights data frame, we can see the departed airports are put in column "origin".
+
+So I group all the data with "origin", and count the number of each of them.
+
+After that, we can see from the result that "origin" has only "EWR", "JFK" and "LGA", so there's no extra need to filter these three faa out.
+
+From the output, we can see flights departed from "EWR", "JFK" and "LGA" are 120835, 111279, 104662.
+```{r}
+flights
+flights %>% group_by(origin) %>% count()
+```
+
+1(c)
+From the displayed flights data frame, we can see that the destination airports are put in column named "dest".
+Firtly, I group flights by "dest", counted the number of occurance by decreasing order and filter by the 5 most common.
+```{r}
+flights %>% group_by(dest) %>% count() %>% arrange(desc(n)) -> com_dest
+com_dest
+com_dest %>% filter(dest == "ORD" | dest == "ATL" | dest == "LAX" | dest == "BOS" | dest == "MCO") -> com_dest
+com_dest
+```
+
+Now that we hava 5 most common destination airports, and we still need their names.
+
+Since we need all names for 5 "dest",which is all rows from "dest" so we should do left_join for com_dest and airports.
+
+We only need names and number of flights, so I select only the information we need.
+```{r}
+com_dest %>% left_join(airports, by = c("dest" = "faa")) %>% select(dest,name,n)
+```
+
+
+
+1(d)
+Display weather, the number of miles of visibility is in column visib.
+Since we need departure delay, number of miles of visibility for each flight, so we need all rows from flight. So left join flight and weather to get these information for each flight.
+
+select origin, dep_delay, time_hour and visib
+```{r}
+weather
+flights %>% left_join(weather) ->fli_wea
+fli_wea %>% select(origin, dep_delay, visib, time_hour) -> fli_wea
+```
+
+
+1(e)
+Since we need a plot of the number of minutes of delay on departure against visibility, so I plot dep_delay against visib.
+
+From the plot, we can see a almost plain line from visb=0 to visib=10, its hard to see the trend of the plot, so I get the annova table for dep_delay against visib for this data. In the annova table, the coefficient for slope(visib) has estimated value of -1.91, its p_value is extremly small, so the slope coefficient is definitly significant, which means that there is indeed much evidence that dep_delay becomes smaller when visib becomes larger, which means that dep_delay time is smaller when the weather is more visible. 
+```{r}
+delay_visib <- lm(dep_delay ~ visib, data = fli_wea)
+ggplot(delay_visib, aes(x = visib, y = dep_delay)) + geom_point() + geom_smooth()
+summary(delay_visib)
+```
+
+
+Since the first plot is too large in dimension y, because there are so much out liers for a large sample, so I decide to zoom this plot, ignore the upper outliers to get a clearer view of the trend of the line. 
+
+Here we can see a much stronger downward trend of this data. So in the graph we can also see that delays are typically worse when the visibility is worse.
+
+```{r}
+ggplot(fli_wea, aes(x = visib, y = dep_delay)) + geom_point() + geom_smooth(method = lm) + coord_cartesian(ylim = c(0, 50))
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
