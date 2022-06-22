@@ -1,0 +1,98 @@
+---
+title: "Tongfei Li STAC33 A1"
+output: html_notebook
+---
+
+```{r}
+library(tidyverse)
+```
+
+1(a)
+First, I put the url of the data file into new variable called my_url. 
+Since the data values are always separated by the same single character, which 
+is a space here, so i use read_delim to read the file.
+There are 47 rows and 2 columns, as there should be.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/rainfall.txt"
+rainfall <- read_delim(my_url," ")
+rainfall
+```
+
+
+1(b)
+Here, we want to see the rainfall value changes according to the years, so we 
+should put the years in x axis as independent variable, and the rainfall value 
+at y axis as response variable. 
+Since we need to see the rainfall value changes
+as the year changes, we should treat both rainfall and year as quantitative 
+variables, 2 quantitative variables leads to a scatter plot.
+```{r}
+ggplot(rainfall, aes(x = Year, y = Rainfall)) + geom_point()
+```
+
+
+1(c)
+From the graph, we see very few points in the grey area, which is the 95% confidence interval of mean of rainfall. 
+Although we see a weak upward trend by the regression line, the points seems to be randomly scattered in the plot. 
+By looking at R Console, adjusted R_squared value is very small (2.248%), so we consider this regression line do not fit our model.
+By looking at the p_value (0.1583), it is much bigger than 0.05.
+So I would say there is no linear relationship between rainfall and year, and 
+the upward trend is not convincing.
+
+```{r}
+ggplot(rainfall, aes(x = Year, y = Rainfall)) + geom_point() + geom_smooth(method="lm")
+model1 <- lm(Rainfall ~ Year, data = rainfall)
+summary(model1)
+```
+
+
+2(a)
+From the data file, we can see that the laptop and score value are separeted by 
+more than one space, and the spaces between values are not constant, so I used
+read_table here.
+There are 47 rows and 2 columns, as there should be. 
+I get correct number of observation 47, and correct type of column.
+Column 1 is charactor (yes or no) for laptop, which is categorical.
+Column 2 is double for score that each student get, which is quantitative.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC33/algebra.txt"
+score <- read_table(my_url)
+score
+```
+
+
+
+2(b)
+Since the laptop here is categorical variable and score here is quantitative variable.
+1 categorical and 1 quantitative variable leads to side-by-side box plots.
+```{r}
+ggplot(score, aes(x = laptop, y = score)) + geom_boxplot()
+```
+
+
+2(c)
+In the side-by-side box plots we can read:
+1. Mean score got by students with laptops (about 84) are higher than students without laptops (about 81).
+2. For IQR value (3th quantile - 1th quantile), which is the height of the box, 
+IQR for students with laptops is smaller than students without laptops, 
+which means the variation of students without laptop is higher, and the students with laptops has more stable score.
+3. Students with laptops has higher maximum score (about 100) than students without laptops(about 98).
+4. Students with laptops has higher minimum score (about 47) than students without laptops(about 39).
+In conclusion, I suggest that students with laptops generally do better and have more stable score than students without laptops.
+
+
+2(d)
+In the box plot, we can see the median score of students with and without laptop is around 84 and 81, which is consistent with what we get from this question.
+In the box plot, we can see the 1st and 3rd quartile for students with laptop is around 80 and 93, iqr = 93 - 80 = 13, for students without laptop is aournd 69 and 89, iqr = 89 - 69 = 20, the value we get here is also consistent with box plot.
+```{r}
+score %>% 
+  group_by(laptop) %>%
+  summarise(across(where(is_numeric), list(med=~median(.), iqr=~IQR(.))))
+```
+
+
+
+
+
+
+

@@ -1,0 +1,131 @@
+---
+title: "R Notebook"
+output:
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+```
+
+1(a)
+There's one column and 10000 rows here, so we have 10000 values for a single character.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/pop.csv"
+values <- read.csv(my_url)
+values
+```
+1(b)
+We want to know the distribution of values of single variable 'v', there's 1 quantitative and 0 categorical variable here, so a histogram is suitable to represent the data here.
+From the geometric histogram here, we can see a right-skewed form of the distribution of variable v.
+```{r}
+ggplot(values, aes(x = v)) + geom_histogram(bins = 25)
+```
+
+1(c)
+H0:mean=4 Ha:mean>4.
+I take sample of size 10 from data values without replacement at a time, calculate p values at each time, determine if it correctly reject Null, and repeat 1000 times.
+From the output of simulation method, we can see that we correctly reject mean=4 by 170 times out of 1000 sampling. So we can say that the estimated power is 0.17.
+```{r}
+set.seed(1004759460)
+rerun(1000, sample(size = 10, values$v, replace = F)) %>% 
+map( ~ t.test(., mu = 4, alternative = "greater")) %>%
+  map_dbl("p.value") %>% 
+  enframe(value="pvals") %>% 
+  count(pvals <= 0.05)
+```
+
+1(d)
+H0:mean=4 Ha:mean>4.
+From the output of simulation method, we can see that we correctly reject mean=4 by 730 times out of 1000 sampling. So we can say that the estimated power is 0.73.
+The power is much larger when the sample size n becomes larger (power=0.17 when sample size =10, power=0.73 when sample size=50), so we can conclude that with a larger sample size, we are more likely to reject the wrong number for sample mean.
+```{r}
+set.seed(1004759460)
+rerun(1000, sample(size = 50, values$v, replace = F)) %>% 
+map( ~ t.test(., mu = 4, alternative = "greater")) %>%
+  map_dbl("p.value") %>% 
+  enframe(value="pvals") %>% 
+  count(pvals <= 0.05)
+```
+
+1(e)
+H0:mean=5 Ha:mean>5.
+First, by calculation the true mean of sample is 5. So, given null is true, the probability of rejecting H0: mean=5 is prob of type I error. From the output, we reject true mean by 23 times out of 1000 tries, so prob of reject true mean, which is prob of type I error is 0.023
+```{r}
+true_mean <- mean(values$v)
+true_mean
+set.seed(1004759460)
+rerun(1000, sample(size = 10, values$v, replace = F)) %>% 
+map( ~ t.test(., mu = 5, alternative = "greater")) %>%
+  map_dbl("p.value") %>% 
+  enframe(value="pvals") %>% 
+  count(pvals <= 0.05)
+```
+
+
+
+2(a)
+the question says there are 20 random samples for protein content, from the output, there are 1 column and 20 rows in the data, as there should be.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC33/protein.txt"
+protein <- read_delim(my_url," ")
+protein
+```
+
+2(b)
+We want to know the distribution of single variable "protein content", there's only 1 quantitative variable and 0 categorical variable, so it is suitable to use geometric histogram here.
+From the gragh, we can observe that there's a left skewed trend of the values.
+```{r}
+ggplot(protein, aes(x = protein)) + geom_histogram(bins = 5)
+```
+
+2(c)
+First, we can see a left skewed trend of the values from 2(b) plot, we can also see the trend in normal quantile plot down here, the high points and low points are too low from straight line.
+Second, the sample size is small(only 20) so we cannot use central limit theorem to assume normality.
+So normality assumption is violated, we should look at median instead of mean in this case, it is better to use sign test.
+```{r}
+ggplot(protein, aes(sample = protein)) + 
+  stat_qq() + stat_qq_line()
+```
+
+2(d)
+we want to test if the meal contains 6 ounces of protein in average, so H0:median=6 Ha:median not= 6.
+So we want the two sided test value here, which is p_value=0.041 < 0.05, so we reject median=6 at significant level of 0.05. That is to say, the advertisement of "6 ounces of protein each meal" is considered to be wrong.
+```{r}
+library(smmr)
+sign_test(protein, protein, 6)
+```
+
+
+2(e)
+By sign test, we want to know if the number of values below 6 is approximatly same as values above 6. Specifily, number of observed values above 6 has binomial distribution with $n = 20$ (number of data values) and $p = 0.5$ (6 is hypothesized to be *median*).
+From the geometric histogram, the number values below 6 is much larger than values above 6 (15 > 5), so we can guess that 6 is not true median for protein contents without looking at p_values.
+```{r}
+protein %>% count(protein < 6)
+```
+
+
+2(f)
+90% confidence interval for median value of protein contents is (4.90, 5.79) as we get from the output. By 90% confidence, we estimate the median of value between 4.90 and 5.79.  
+We use the “duality” between test and confidence interval to say: the (90%) confidence interval for the median contains exactly those values of the null median that would not be rejected by the two-sided sign test (at $\alpha = 0.10$). 
+Value of 6 is not included in the 90% confidence interval, so we do not assume we have an average of 6 protein in each meal at level of 0.1, but we'd better get 95% confidence interval to get more accurate answer. Still, this indicates that 6 is not likely to be true median and leads to rejecting H0.
+```{r}
+#90%
+ci_median(protein,protein,conf.level=0.90)
+#95%
+ci_median(protein,protein,conf.level=0.95)
+```
+
+
+
+
+
+
+
+
+
+
+
+

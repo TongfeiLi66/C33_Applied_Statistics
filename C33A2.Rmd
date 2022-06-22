@@ -1,0 +1,101 @@
+---
+title: "R Notebook"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+
+```{r}
+library(tidyverse)
+```
+
+1(a)
+The data has 4 columns and 30 rows.
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/cholest.csv"
+cholesterol <- read_csv(my_url)
+cholesterol
+```
+
+1(b)
+There is only one quantitative variable(cholesterol levels of the control patients), and 0 categorical variable, so I choose geometric histogram.
+The shape is right skewed, with a long tail at the right, and the cholesterol level bunching on the left, cholesterol level with most patients is about 180
+```{r}
+ggplot(cholesterol, aes(x = control)) + geom_histogram(bins = 7)
+```
+
+1(c)
+let mu be the mean level of cholesterol levels of the control patients
+H0: mu = 200  ,   Ha: mu < 200
+```{r}
+t.test(cholesterol$control, mu = 200, alternative = "less")
+```
+since p-value is 0.05121, sightly larger than 0.05, so we fail to reject null hypothesis and conclude that population mean cholesterol level is equal to 200. That is to say, at level of 0.05, we consider mean of cholesterol level of people in good health is 200.
+
+1(d)
+the 95% confidence interval of mean value of level of cholesterol level of control patience is (184.8, 201.5)
+So by 95% confidence, population mean cholesterol would take between 184.8-201.5
+```{r}
+t.test(cholesterol$control)
+```
+
+1(e)
+```{r}
+ggplot(cholesterol,aes(sample=control))+
+stat_qq()+stat_qq_line()
+```
+
+Firstly, the graph of control patient in (b) is right skewed, which is not appropriate for t-test, t-test needs normal distributed sample. And by looking at the normal quantile plot, some points above 1 diverge from the straight line, which is a little bit violate normality assumption.
+Secondly, the sample size is 30, which is sufficiently large for central limit theorem. Although the source population is right skewed, we can still consider the distribution of sample means is approximately normally distributed. 
+In conclusion, we can trust the the t procedure in this question.
+
+
+
+2(a)
+the data has 2 columns and 21 rows
+```{r}
+my_url <- "http://ritsokiguess.site/STAC32/anchoring.csv"
+anchor <- read_csv(my_url)
+anchor
+```
+
+
+2(b)
+First,we need to compare the distribution of students' estimation in two different group, 
+Second, we have 1 categorical variable and 1 quantitative variable here,
+so it is suitable for us to use 2 sided box plot.
+
+```{r}
+ggplot(anchor, aes(x = anchor, y = estimate)) + geom_boxplot()
+```
+
+2(c)
+Choosing between welch t-test and pooled t-test, we need to consider whether two groups have same spread.
+Since the height of box plot australia is much smaller than that of us, estimate of australia has a much smaller variation than estimate of us.
+With a different variance, we should choose Welch-Satterthwaite t-test.
+
+2(d)
+since we want to test if us > aus, in alphabetical order, we want to test if aus < us, so proper alternative
+is “less”.
+H0: aus = us, Ha: aus < us
+```{r}
+t.test(estimate ~ anchor, data = anchor, alternative = "less")
+```
+
+2(e)
+By looking at the p-value = 0.006 < 0.05, so we reject null hypothesis and conclude that aus < us, which is to say, students given Australia as an anchor have smaller mean estimate than students given US as an anchor.
+
+
+
+
+
+
+
+
+
+
+
+
+
